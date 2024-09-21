@@ -4,8 +4,10 @@ import styles from "./input-field.module.css";
 export interface InputFieldProps {
   value?: string;
   placeholder?: string;
-  inputMode?: "numeric" | "text";
-  pattern?: string;
+  type?: React.HTMLInputTypeAttribute;
+  inputMode?: "decimal" | "text" | "numeric";
+  min?: number;
+  max?: number;
   style?: React.CSSProperties;
   onChange?: (value: string) => void;
 }
@@ -13,18 +15,21 @@ export interface InputFieldProps {
 export const InputField: React.FC<InputFieldProps> = ({
   value,
   placeholder,
-  inputMode = "numeric",
-  pattern = "^d+$",
+  type = "number",
+  inputMode = "decimal",
+  min = 0,
+  max,
   style,
   onChange,
 }) => {
   return (
     <input
-      type="text"
+      type={type}
       inputMode={inputMode}
-      pattern={pattern}
       placeholder={placeholder}
       value={value}
+      min={min}
+      max={max}
       className={styles["container"]}
       style={style}
       onChange={(e) => onChange?.(e.target.value)}

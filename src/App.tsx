@@ -5,38 +5,67 @@ import { Currency, getCurrencies } from "./service/datasource";
 import { DropDown, DropDownItem, Header, InputField } from "./components";
 
 function App() {
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
 
-  const [sourceAmount, setSourceAmount] = useState<number>();
+  const [sourceAmount, setSourceAmount] = useState<number>(100);
   const [sourceCurrency, setSourceCurrency] = useState<Currency>();
 
-  const [targetAmount, setTargetAmount] = useState<number>();
+  const [targetAmount, setTargetAmount] = useState<number>(0);
   const [targetCurrency, setTargetCurrency] = useState<Currency>();
 
+  const [exchangeRate, setExchangeRate] = useState<number>(1);
+
   useEffect(() => {
-    if (!currencies.length) {
-      getCurrencies()
-        .then((data) => {
-          setCurrencies(data);
-        })
-        .catch((err) => alert(err));
+    if (!isFirstLoad) {
+      return;
     }
-  }, [currencies.length]);
+
+    getCurrencies()
+      .then((data) => {
+        setCurrencies(data);
+        setSourceCurrency(data[0]);
+        setTargetCurrency(data[1]);
+        setExchangeRate(data[0]?.rateBuy / data[1]?.rateSell);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    setIsFirstLoad(false);
+  }, []);
+
+  useEffect(() => {
+    if (sourceCurrency && targetCurrency) {
+      const rate =
+        sourceCurrency.code !== targetCurrency.code
+          ? sourceCurrency.rateBuy / targetCurrency.rateSell
+          : 1;
+      setExchangeRate(rate);
+      setTargetAmount(roundNumber(sourceAmount * rate));
+    }
+  }, [sourceAmount, sourceCurrency, targetCurrency]);
 
   const currencyList = useMemo<DropDownItem[]>(
     () =>
-      currencies.length
-        ? currencies.map((item) => ({ label: item.code, value: item.code }))
-        : [],
+      (currencies || []).map((item) => ({
+        label: item.code,
+        value: item.code,
+      })),
     [currencies]
   );
 
+  const roundNumber = (value: number): number => {
+    return parseFloat(value.toFixed(2));
+  };
+
   const handleSourceAmountChange = (value: string) => {
     setSourceAmount(+value);
+    setTargetAmount(roundNumber(+value * exchangeRate));
   };
 
   const handleTargetAmountChange = (value: string) => {
     setTargetAmount(+value);
+    setSourceAmount(roundNumber(+value / exchangeRate));
   };
 
   const handleSourceCurrencyChange = (value: string) => {
@@ -61,7 +90,7 @@ function App() {
 
       <main className={styles["main-container"]}>
         <div>
-          <span>From</span>
+          <strong>From</strong>
 
           <div className={styles["row"]}>
             <InputField
@@ -79,7 +108,7 @@ function App() {
         </div>
 
         <div>
-          <span>To</span>
+          <strong>To</strong>
 
           <div className={styles["row"]}>
             <InputField
